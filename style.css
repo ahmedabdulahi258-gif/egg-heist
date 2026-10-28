@@ -49,3 +49,7 @@ html,body{margin:0;height:100%;overflow:hidden;background:#1a1a2e;touch-action:n
 .petCard{background:#0004;border:3px solid #555;border-radius:12px;padding:8px 4px;font-size:13px;font-weight:700;color:#fff}
 .petCard.eq{border-color:#7f9;background:#2a4a33}
 .petCard .sw{width:36px;height:36px;border-radius:8px;margin:0 auto 4px}
+
+#fsBtn{width:40px;padding:8px 0;font-size:18px}
+#fsHint{position:absolute;top:calc(env(safe-area-inset-top) + 56px);left:50%;transform:translateX(-50%);background:#000c;padding:8px 14px;border-radius:12px;font-weight:700;font-size:14px;text-align:center;max-width:80%;pointer-events:auto}
+body.fillmode{width:100vw;height:100dvh}

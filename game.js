@@ -408,5 +408,29 @@ requestAnimationFrame(frame);
 
 $('play').onclick = () => { $('start').classList.add('hidden'); state.running = true; };
 
+// ================= FULLSCREEN =================
+// Real Fullscreen API where available (desktop/Android); on iPhone Safari (no element
+// fullscreen) or if it is blocked, fall back to a fill-the-screen mode + a one-time hint.
+const fsBtn = $('fsBtn'), fsHint = $('fsHint');
+let fillMode = false, hintShown = false;
+const fsElement = () => document.fullscreenElement || document.webkitFullscreenElement || null;
+function setFsIcon() { const on = !!fsElement() || fillMode; fsBtn.textContent = on ? '✕' : '⛶'; fsBtn.setAttribute('aria-label', on ? 'Exit fullscreen' : 'Fullscreen'); }
+function goFill() {
+  fillMode = true; document.body.classList.add('fillmode'); window.scrollTo(0, 0); setFsIcon(); onResize();
+  if (!hintShown) { hintShown = true; fsHint.classList.remove('hidden'); setTimeout(() => fsHint.classList.add('hidden'), 6000); }
+}
+fsHint.onclick = () => fsHint.classList.add('hidden');
+fsBtn.onclick = () => {
+  if (fillMode) { fillMode = false; document.body.classList.remove('fillmode'); setFsIcon(); onResize(); return; }
+  if (fsElement()) { (document.exitFullscreen || document.webkitExitFullscreen)?.call(document)?.catch?.(() => {}); return; }
+  const el = document.documentElement;
+  try {
+    if (el.requestFullscreen && document.fullscreenEnabled !== false) el.requestFullscreen().catch(goFill);
+    else if (el.webkitRequestFullscreen) { el.webkitRequestFullscreen(); setTimeout(() => { if (!fsElement()) goFill(); }, 400); }
+    else goFill();
+  } catch (e) { goFill(); }
+};
+for (const ev of ['fullscreenchange', 'webkitfullscreenchange']) document.addEventListener(ev, () => { setFsIcon(); setTimeout(onResize, 50); });
+
 // Hook for automated tests / tinkering in the console
 window.EH = { state, car, zones, input, save, TUNE, HOME };
