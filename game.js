@@ -178,13 +178,86 @@ function makeGuard(home, speed) {
 
 // ================= PETS =================
 const petMeshes = [];
+// Real 3D models for Dog, Cat, Bunny (test set); other pets still use the cube placeholder.
+function part(g, geo, c, x, y, z, sx = 1, sy = 1, sz = 1, rx = 0, ry = 0, rz = 0) {
+  const m = new THREE.Mesh(geo, typeof c === 'object' ? c : mat(c));
+  m.position.set(x, y, z); m.scale.set(sx, sy, sz); m.rotation.set(rx, ry, rz); g.add(m); return m;
+}
+const SPH = new THREE.SphereGeometry(0.5, 14, 10), CYL = new THREE.CylinderGeometry(0.5, 0.5, 1, 10), CONE = new THREE.ConeGeometry(0.5, 1, 10);
+function eyes(g, y, z, spread = 0.22, size = 0.16) {
+  for (const x of [-spread, spread]) {
+    part(g, SPH, 0x111111, x, y, z, size, size, size * 0.7);
+    part(g, SPH, 0xffffff, x + 0.03, y + 0.04, z + 0.05, size * 0.35, size * 0.35, size * 0.3);
+  }
+}
+function legs(g, c, w = 0.32, len = 0.5) {
+  for (const x of [-0.3, 0.3]) for (const z of [-0.35, 0.35]) part(g, CYL, c, x, len / 2, z, w, len, w);
+}
+const PET_BUILDERS = {
+  Dog(g) {
+    const c = 0xb8804a, d = 0x7a4f28;
+    legs(g, c); part(g, SPH, c, 0, 0.75, 0, 0.9, 0.7, 1.25);
+    part(g, SPH, c, 0, 1.3, 0.55, 0.75, 0.7, 0.7);
+    part(g, SPH, 0xe8c9a0, 0, 1.2, 0.9, 0.38, 0.3, 0.35); part(g, SPH, 0x111111, 0, 1.28, 1.06, 0.13, 0.1, 0.1);
+    for (const s of [-1, 1]) part(g, SPH, d, s * 0.36, 1.35, 0.5, 0.18, 0.5, 0.3, 0, 0, s * 0.25);
+    eyes(g, 1.42, 0.85, 0.17, 0.13);
+    part(g, CYL, c, 0, 1.05, -0.65, 0.12, 0.5, 0.12, -0.8);
+  },
+  Cat(g) {
+    const c = 0xf0a040, s2 = 0xc87a20;
+    legs(g, c, 0.26); part(g, SPH, c, 0, 0.72, 0, 0.75, 0.6, 1.1);
+    part(g, SPH, c, 0, 1.25, 0.5, 0.72, 0.62, 0.6);
+    for (const s of [-1, 1]) { part(g, CONE, c, s * 0.22, 1.62, 0.5, 0.25, 0.32, 0.18, 0, 0, s * -0.25); part(g, CONE, 0xffb0c0, s * 0.22, 1.6, 0.54, 0.13, 0.2, 0.08, 0, 0, s * -0.25); }
+    part(g, SPH, 0xfff0dc, 0, 1.15, 0.78, 0.32, 0.22, 0.15); part(g, SPH, 0xff8aa0, 0, 1.22, 0.86, 0.07, 0.05, 0.05);
+    eyes(g, 1.32, 0.76, 0.16, 0.13);
+    part(g, SPH, s2, 0, 0.98, 0.05, 0.6, 0.12, 0.5); // back stripe
+    part(g, CYL, c, 0, 1.2, -0.62, 0.1, 0.9, 0.1, -0.3);
+  },
+  Bunny(g) {
+    const c = 0xf6f6f6, p = 0xffb0c8;
+    for (const x of [-0.25, 0.25]) part(g, SPH, c, x, 0.2, 0.1, 0.3, 0.3, 0.5);
+    part(g, SPH, c, 0, 0.7, 0, 0.85, 0.85, 0.9);
+    part(g, SPH, c, 0, 1.3, 0.3, 0.68, 0.62, 0.62);
+    for (const s of [-1, 1]) { part(g, SPH, c, s * 0.16, 1.95, 0.22, 0.2, 0.85, 0.12, 0, 0, s * -0.12); part(g, SPH, p, s * 0.16, 1.95, 0.27, 0.1, 0.65, 0.05, 0, 0, s * -0.12); }
+    part(g, SPH, p, 0, 1.24, 0.62, 0.09, 0.07, 0.06);
+    eyes(g, 1.38, 0.56, 0.17, 0.13);
+    part(g, SPH, 0xffffff, 0, 0.75, -0.48, 0.3, 0.3, 0.3);
+  },
+};
 function petMesh(name) {
   const g = new THREE.Group(), c = RARITY_COLORS[PETS[name]];
+  if (PET_BUILDERS[name]) {
+    const inner = new THREE.Group(); PET_BUILDERS[name](inner);
+    inner.scale.setScalar(1.6); inner.position.y = -1.2; g.add(inner); return g;
+  }
   const b = box(1.8, 1.8, 1.8, c); g.add(b);
   for (const x of [-0.45, 0.45]) { const e = box(0.35, 0.35, 0.1, 0x000000); e.position.set(x, 0.3, 0.92); g.add(e); }
   if (PETS[name] === 'Legendary' || PETS[name] === 'Epic') { const crown = box(1, 0.5, 1, 0xffe066); crown.position.y = 1.15; g.add(crown); }
   return g;
 }
+
+// Small 3D viewer for the hatch reveal: the pet spins on a glowing rarity disc
+let petView = null;
+function showPetView(name) {
+  const cv = $('petView');
+  if (!petView) {
+    const r = new THREE.WebGLRenderer({ canvas: cv, alpha: true, antialias: true });
+    r.setPixelRatio(Math.min(devicePixelRatio || 1, 2)); r.setSize(200, 200, false);
+    const sc = new THREE.Scene(); sc.add(new THREE.HemisphereLight(0xffffff, 0x666688, 1.3));
+    const dl = new THREE.DirectionalLight(0xffffff, 1.2); dl.position.set(3, 5, 4); sc.add(dl);
+    const cam = new THREE.PerspectiveCamera(40, 1, 0.1, 50); cam.position.set(0, 1.6, 6.5); cam.lookAt(0, 0.3, 0);
+    const disc = new THREE.Mesh(new THREE.CylinderGeometry(1.8, 1.8, 0.15, 32), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.5 }));
+    disc.position.y = -1.3; sc.add(disc);
+    petView = { r, sc, cam, disc, model: null, t: 0, on: false };
+    const loop = () => { if (!petView.on) return; petView.t += 1 / 60; if (petView.model) { petView.model.rotation.y = petView.t * 1.4; petView.model.position.y = Math.abs(Math.sin(petView.t * 3)) * 0.25; } r.render(sc, cam); requestAnimationFrame(loop); };
+    petView.loop = loop;
+  }
+  if (petView.model) petView.sc.remove(petView.model);
+  petView.model = petMesh(name); petView.sc.add(petView.model);
+  petView.disc.material.color.set(RARITY_COLORS[PETS[name]]);
+  if (!petView.on) { petView.on = true; petView.t = 0; petView.loop(); }
+}
+function hidePetView() { if (petView) petView.on = false; }
 function refreshPets() {
   for (const p of petMeshes) scene.remove(p.g);
   petMeshes.length = 0;
@@ -321,13 +394,13 @@ function hatch() {
   setTimeout(() => {
     eggEl.style.display = 'none'; res.classList.remove('hidden');
     const col = RARITY_COLORS[PETS[pet]];
-    $('petIcon').style.background = col; $('petIcon').style.color = col;
+    showPetView(pet);
     $('petName').textContent = pet; $('petRarity').textContent = PETS[pet]; $('petRarity').style.color = col;
     $('petCoins').textContent = `+${tier.reward} coins`;
     updateCoins(); refreshPets();
   }, 2100);
 }
-$('hatchOk').onclick = () => { $('hatch').classList.add('hidden'); state.hatching = false; };
+$('hatchOk').onclick = () => { $('hatch').classList.add('hidden'); hidePetView(); state.hatching = false; };
 
 function update(dt) {
   state.time += dt;

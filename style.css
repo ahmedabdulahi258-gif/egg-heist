@@ -59,3 +59,5 @@ body.fillmode{width:100vw;height:100dvh}
 #rotPhone{font-size:90px;animation:rot 1.6s ease-in-out infinite}
 @keyframes rot{0%,30%{transform:rotate(0)}60%,100%{transform:rotate(-90deg)}}
 @media (orientation:portrait) and (pointer:coarse){#rotate{display:flex}}
+
+#petView{width:200px;height:200px;display:block;margin:0 auto 6px}
