@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#1a1a2e">
+<title>Egg Heist</title>
+<link rel="stylesheet" href="style.css">
+<script type="importmap">{ "imports": { "three": "./vendor/three.module.js" } }</script>
+</head>
+<body>
+<div id="game"></div>
+<div id="hud">
+  <div id="topbar">
+    <div id="coins">🪙 <span id="coinCount">0</span></div>
+    <div id="status">Drive to an egg zone and grab an egg!</div>
+    <button id="petsBtn" class="pill">🐾 Pets</button>
+  </div>
+  <div id="chase">GUARDS CHASING!</div>
+  <div id="notice"></div>
+  <canvas id="minimap" width="140" height="140"></canvas>
+  <div id="compass"><div id="arrow">⬆</div><span>HOME</span></div>
+  <div id="joyZone"><div id="joyBase"><div id="joyKnob"></div></div></div>
+  <div id="pedals">
+    <button id="brake" class="pedal">◀ BRAKE</button>
+    <button id="gas" class="pedal">GAS ▶</button>
+  </div>
+</div>
+<div id="hatch" class="hidden">
+  <div id="hatchEgg">🥚</div>
+  <div id="hatchResult" class="hidden">
+    <div id="petIcon"></div>
+    <div id="petName"></div>
+    <div id="petRarity"></div>
+    <div id="petCoins"></div>
+    <button id="hatchOk" class="pill big">Awesome!</button>
+  </div>
+</div>
+<div id="petScreen" class="hidden">
+  <div class="panel">
+    <div class="panelHead"><b>My Pets</b><span id="equipInfo"></span><button id="closePets" class="pill">✕</button></div>
+    <div id="petGrid"></div>
+    <p class="hint">Tap a pet to equip/unequip (max 3 follow your car).</p>
+  </div>
+</div>
+<div id="start">
+  <h1>EGG HEIST</h1>
+  <p>Steal eggs 🥚 · Dodge guards 👮 · Hatch pets 🐉</p>
+  <button id="play" class="pill big">PLAY</button>
+  <p class="hint">Phone: joystick (left) steers · GAS / BRAKE (right)<br>Keyboard: WASD / arrow keys</p>
+</div>
+<script type="module" src="game.js"></script>
+</body>
+</html>
