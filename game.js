@@ -105,14 +105,27 @@ function mulberry(a) { return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Ma
 // ================= CAR =================
 const car = { pos: new THREE.Vector3(0, 0, 8), h: 0, speed: 0, flung: null, carrying: null };
 const carMesh = new THREE.Group();
-{
-  const body = box(4.4, 1.4, 7, 0xe02828); body.position.y = 1.4; carMesh.add(body);
-  const cab = box(3.8, 1.3, 3.4, 0x222233); cab.position.set(0, 2.7, -0.6); carMesh.add(cab);
-  const wheelGeo = new THREE.CylinderGeometry(1, 1, 0.8, 10); wheelGeo.rotateZ(Math.PI / 2);
-  for (const x of [-2.2, 2.2]) for (const z of [-2.3, 2.3]) {
-    const w = new THREE.Mesh(wheelGeo, mat(0x151515)); w.position.set(x, 1, z); carMesh.add(w);
-  }
-  for (const x of [-1.4, 1.4]) { const l = box(0.8, 0.5, 0.2, new THREE.MeshBasicMaterial({ color: 0xffffaa })); l.position.set(x, 1.6, 3.55); carMesh.add(l); }
+{ // Original two-tone hypercar
+  const shiny = (c, sh = 90) => new THREE.MeshPhongMaterial({ color: c, shininess: sh, specular: 0x666666 });
+  const add = (geo, m, x, y, z, rx = 0, ry = 0, rz = 0, sx = 1, sy = 1, sz = 1) => { const o = new THREE.Mesh(geo, m); o.position.set(x, y, z); o.rotation.set(rx, ry, rz); o.scale.set(sx, sy, sz); carMesh.add(o); return o; };
+  const B = (w, h, d) => new THREE.BoxGeometry(w, h, d);
+  const dark = shiny(0x0b1630), blue = shiny(0x1e6bff), glass = shiny(0x0a0f1a, 120), black = mat(0x111111), chrome = shiny(0xd8dde6, 120);
+  add(B(4.4, 0.8, 7.0), dark, 0, 1.0, -0.1);                         // lower body
+  add(B(4.2, 0.45, 1.8), blue, 0, 1.05, 3.3, -0.22);                  // sloped nose
+  add(B(4.5, 0.55, 3.4), blue, 0, 1.35, 1.6);                         // bright front half
+  add(B(4.5, 0.6, 3.2), dark, 0, 1.35, -1.8);                         // dark rear half
+  add(new THREE.SphereGeometry(1, 20, 12, 0, Math.PI * 2, 0, Math.PI / 2), glass, 0, 1.6, -0.3, 0, 0, 0, 1.55, 0.95, 2.0); // canopy
+  add(B(0.12, 0.7, 2.6), chrome, -2.27, 1.3, 0.2); add(B(0.12, 0.7, 2.6), chrome, 2.27, 1.3, 0.2); // side accent lines
+  for (const x of [-1, 1]) add(B(0.2, 0.55, 1.4), black, x * 2.26, 1.2, -1.6); // side intakes
+  add(B(1.3, 0.45, 0.15), chrome, 0, 1.15, 3.95);                     // front grille
+  for (const x of [-1.5, 1.5]) add(B(0.9, 0.18, 0.12), new THREE.MeshBasicMaterial({ color: 0xeaf4ff }), x, 1.3, 3.78); // headlights
+  add(B(3.9, 0.14, 0.1), new THREE.MeshBasicMaterial({ color: 0xff2030 }), 0, 1.45, -3.62); // tail light strip
+  add(B(4.0, 0.12, 0.8), dark, 0, 2.25, -3.1);                        // spoiler
+  for (const x of [-1.3, 1.3]) add(B(0.15, 0.6, 0.3), black, x, 1.9, -3.1);
+  for (const x of [-0.7, 0.7]) add(new THREE.CylinderGeometry(0.18, 0.18, 0.3, 10), chrome, x, 0.75, -3.6, Math.PI / 2); // exhausts
+  const tire = new THREE.CylinderGeometry(0.9, 0.9, 0.7, 16); tire.rotateZ(Math.PI / 2);
+  const rim = new THREE.CylinderGeometry(0.55, 0.55, 0.74, 12); rim.rotateZ(Math.PI / 2);
+  for (const x of [-2.15, 2.15]) for (const z of [-2.3, 2.3]) { add(tire, black, x, 0.9, z); add(rim, chrome, x, 0.9, z); }
 }
 scene.add(carMesh);
 const forward = h => new THREE.Vector3(Math.sin(h), 0, Math.cos(h));
