@@ -406,7 +406,23 @@ function frame(now) {
 camera.position.set(0, 10, -10); camera.lookAt(0, 0, 20);
 requestAnimationFrame(frame);
 
-$('play').onclick = () => { $('start').classList.add('hidden'); state.running = true; };
+// ================= LANDSCAPE ONLY =================
+// Lock to landscape where the browser allows it (Android / installed app); everywhere else
+// (iPhone Safari) the #rotate overlay covers the game and play pauses while held upright.
+const portraitMQ = matchMedia('(orientation: portrait) and (pointer: coarse)');
+let started = false;
+function lockLandscape() { try { screen.orientation?.lock?.('landscape').catch(() => {}); } catch (e) {} }
+function applyOrientation() {
+  const upright = portraitMQ.matches;
+  if (upright) { input.joyX = input.joyY = 0; for (const k of Object.keys(input)) if (input[k] === true) input[k] = false; }
+  if (started) state.running = !upright;
+  setTimeout(onResize, 100);
+}
+portraitMQ.addEventListener?.('change', applyOrientation);
+addEventListener('orientationchange', applyOrientation);
+applyOrientation();
+
+$('play').onclick = () => { $('start').classList.add('hidden'); started = true; lockLandscape(); state.running = !portraitMQ.matches; };
 
 // ================= FULLSCREEN =================
 // Real Fullscreen API where available (desktop/Android); on iPhone Safari (no element
@@ -430,7 +446,7 @@ fsBtn.onclick = () => {
     else goFill();
   } catch (e) { goFill(); }
 };
-for (const ev of ['fullscreenchange', 'webkitfullscreenchange']) document.addEventListener(ev, () => { setFsIcon(); setTimeout(onResize, 50); });
+for (const ev of ['fullscreenchange', 'webkitfullscreenchange']) document.addEventListener(ev, () => { setFsIcon(); if (fsElement()) lockLandscape(); setTimeout(onResize, 50); });
 
 // Hook for automated tests / tinkering in the console
 window.EH = { state, car, zones, input, save, TUNE, HOME };
