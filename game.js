@@ -1,6 +1,6 @@
 // Egg Heist (browser edition) - Three.js, no build step.
 // Steal eggs from guarded zones, drive them home, hatch pets!
-import * as THREE from 'three';
+import * as THREE from './vendor/three.module.js';
 
 // ================= CONFIG (same pets/rarities as the Roblox PetConfig) =================
 const RARITY_COLORS = { Common: '#c8c8c8', Uncommon: '#55c855', Rare: '#4682ff', Epic: '#aa46ff', Legendary: '#ffbe28' };
