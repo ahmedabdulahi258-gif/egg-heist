@@ -283,21 +283,30 @@ const PET_OFFSETS = [new THREE.Vector3(-3.5, 2, -6), new THREE.Vector3(3.5, 2, -
 
 // ================= CAMERA SWIPE =================
 // Drag on the right half of the screen (not on buttons) to orbit the camera; it eases back behind the car.
-const camLook = { id: null, x: 0, y: 0, yaw: 0, pitch: 0, idle: 0 };
-renderer.domElement.style.touchAction = 'none';
-renderer.domElement.addEventListener('pointerdown', e => {
-  if (camLook.id !== null || e.clientX < innerWidth * 0.4) return;
+const camLook = { id: null, x: 0, y: 0, yaw: 0, pitch: 0, idle: 0, zoom: 1, pinch: 0 };
+const camPtrs = new Map(); // pointers touching the 3D view (for pinch zoom)
+const cv3 = renderer.domElement; cv3.style.touchAction = 'none';
+const pinchDist = () => { const [a, b] = [...camPtrs.values()]; return Math.hypot(a.x - b.x, a.y - b.y); };
+cv3.addEventListener('pointerdown', e => {
+  camPtrs.set(e.pointerId, { x: e.clientX, y: e.clientY }); cv3.setPointerCapture?.(e.pointerId);
+  if (camPtrs.size === 2) { camLook.id = null; camLook.pinch = pinchDist(); return; }
+  if (camLook.id !== null || camPtrs.size > 1 || e.clientX < innerWidth * 0.4) return;
   camLook.id = e.pointerId; camLook.x = e.clientX; camLook.y = e.clientY; camLook.idle = 0;
-  renderer.domElement.setPointerCapture?.(e.pointerId);
 });
-renderer.domElement.addEventListener('pointermove', e => {
+cv3.addEventListener('pointermove', e => {
+  if (!camPtrs.has(e.pointerId)) return;
+  camPtrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  if (camPtrs.size === 2 && camLook.pinch > 0) {
+    const d = pinchDist(); camLook.zoom = Math.max(0.45, Math.min(2.2, camLook.zoom * camLook.pinch / d)); camLook.pinch = d; return;
+  }
   if (e.pointerId !== camLook.id) return;
   camLook.yaw -= (e.clientX - camLook.x) * 0.008;
   camLook.pitch = Math.max(-0.35, Math.min(0.7, camLook.pitch + (e.clientY - camLook.y) * 0.005));
   camLook.x = e.clientX; camLook.y = e.clientY;
 });
-const camEnd = e => { if (e.pointerId === camLook.id) { camLook.id = null; camLook.idle = 0; } };
-renderer.domElement.addEventListener('pointerup', camEnd); renderer.domElement.addEventListener('pointercancel', camEnd);
+const camEnd = e => { camPtrs.delete(e.pointerId); if (camPtrs.size < 2) camLook.pinch = 0; if (e.pointerId === camLook.id) { camLook.id = null; camLook.idle = 0; } };
+cv3.addEventListener('pointerup', camEnd); cv3.addEventListener('pointercancel', camEnd);
+cv3.addEventListener('wheel', e => { e.preventDefault(); camLook.zoom = Math.max(0.45, Math.min(2.2, camLook.zoom * Math.exp(e.deltaY * 0.001))); }, { passive: false });
 
 // ================= INPUT =================
 const input = { steer: 0, throttle: 0, gas: false, brake: false, joyX: 0, joyY: 0, keys: {}, override: null };
@@ -521,7 +530,7 @@ function update(dt) {
   // --- Camera (chase cam, further back in portrait)
   const portrait = camera.aspect < 1, back = portrait ? 22 : 17, up = portrait ? 11 : 8;
   if (camLook.id === null && (camLook.idle += dt) > 1.5) { camLook.yaw *= Math.max(0, 1 - dt * 3); camLook.pitch *= Math.max(0, 1 - dt * 3); }
-  const dist = Math.hypot(back, up), elev = Math.atan2(up, back) + camLook.pitch, ang = car.h + camLook.yaw;
+  const dist = Math.hypot(back, up) * camLook.zoom, elev = Math.atan2(up, back) + camLook.pitch, ang = car.h + camLook.yaw;
   const camTarget = car.pos.clone().addScaledVector(forward(ang), -Math.cos(elev) * dist); camTarget.y = car.pos.y * 0.5 + Math.sin(elev) * dist;
   camera.position.lerp(camTarget, Math.min(1, dt * (car.flung ? 2 : camLook.id !== null ? 12 : 4)));
   if (state.shake > 0) { camera.position.x += (Math.random() - 0.5) * state.shake * 2; camera.position.y += (Math.random() - 0.5) * state.shake * 2; state.shake -= dt * 1.5; }
