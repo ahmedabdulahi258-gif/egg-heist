@@ -117,9 +117,29 @@ const carMesh = new THREE.Group();
 scene.add(carMesh);
 const forward = h => new THREE.Vector3(Math.sin(h), 0, Math.cos(h));
 
-// Arrow above the car pointing home (only while carrying)
-const homeArrow = new THREE.Mesh(new THREE.ConeGeometry(0.9, 2.4, 4), new THREE.MeshBasicMaterial({ color: 0x3cff78 }));
-homeArrow.geometry.rotateX(Math.PI / 2); homeArrow.visible = false; scene.add(homeArrow);
+// Big arrow floating above the car, always pointing at the hatch pad
+const homeArrow = new THREE.Group();
+{
+  const am = new THREE.MeshBasicMaterial({ color: 0x3cff78 });
+  const om = new THREE.MeshBasicMaterial({ color: 0x0b5a26 });
+  const head = new THREE.Mesh(new THREE.ConeGeometry(1.6, 2.6, 16), am); head.rotation.x = Math.PI / 2; head.position.z = 2.2;
+  const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.55, 3, 12), am); shaft.rotation.x = Math.PI / 2; shaft.position.z = -0.6;
+  const rim = new THREE.Mesh(new THREE.ConeGeometry(1.85, 2.9, 16), om); rim.rotation.x = Math.PI / 2; rim.position.set(0, -0.15, 2.05);
+  homeArrow.add(rim, head, shaft);
+  // Glow: additive halo copies of the arrow plus a soft round sprite behind it
+  const gm = new THREE.MeshBasicMaterial({ color: 0x7dffa8, transparent: true, opacity: 0.35, blending: THREE.AdditiveBlending, depthWrite: false });
+  const gHead = new THREE.Mesh(head.geometry, gm); gHead.rotation.x = Math.PI / 2; gHead.position.z = 2.2; gHead.scale.setScalar(1.35);
+  const gShaft = new THREE.Mesh(shaft.geometry, gm); gShaft.rotation.x = Math.PI / 2; gShaft.position.z = -0.6; gShaft.scale.set(1.8, 1.15, 1.8);
+  const cv = document.createElement('canvas'); cv.width = cv.height = 64;
+  const cx = cv.getContext('2d'), gr = cx.createRadialGradient(32, 32, 0, 32, 32, 32);
+  gr.addColorStop(0, 'rgba(120,255,160,0.9)'); gr.addColorStop(0.4, 'rgba(60,255,120,0.35)'); gr.addColorStop(1, 'rgba(60,255,120,0)');
+  cx.fillStyle = gr; cx.fillRect(0, 0, 64, 64);
+  const halo = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(cv), blending: THREE.AdditiveBlending, depthWrite: false, transparent: true }));
+  halo.scale.set(9, 9, 1); halo.position.z = 0.8;
+  homeArrow.add(gHead, gShaft, halo);
+  homeArrow.userData = { am, gm, halo };
+}
+homeArrow.visible = false; scene.add(homeArrow);
 
 // ================= ZONES, EGGS, GUARDS =================
 const eggGeo = new THREE.SphereGeometry(1.3, 10, 8); eggGeo.scale(1, 1.3, 1);
@@ -215,7 +235,7 @@ function readInput() {
 
 // ================= HUD =================
 const $ = id => document.getElementById(id);
-const hud = { coins: $('coinCount'), status: $('status'), chase: $('chase'), notice: $('notice'), compass: $('compass'), arrow: $('arrow') };
+const hud = { coins: $('coinCount'), status: $('status'), chase: $('chase'), notice: $('notice') };
 let noticeTimer = 0;
 function notice(t, secs = 2.5) { hud.notice.textContent = t; noticeTimer = secs; }
 function updateCoins() { hud.coins.textContent = save.coins.toLocaleString(); }
@@ -378,12 +398,19 @@ function update(dt) {
     pm.g.position.lerp(t, Math.min(1, dt * 5)); pm.g.rotation.y = car.h;
   }
 
-  // --- Home arrow + compass
-  homeArrow.visible = !!car.carrying;
+  // --- Home arrow
   const toHome = Math.atan2(HOME.x - car.pos.x, HOME.z - car.pos.z);
-  if (car.carrying) { homeArrow.position.set(car.pos.x, car.pos.y + 9.5, car.pos.z); homeArrow.rotation.y = toHome; }
-  hud.compass.classList.toggle('on', !!car.carrying);
-  hud.arrow.style.transform = `rotate(${-(toHome - car.h) * 180 / Math.PI}deg)`;
+  const homeDist = Math.hypot(HOME.x - car.pos.x, HOME.z - car.pos.z);
+  homeArrow.visible = !car.flung && homeDist > TUNE.padRadius;
+  if (homeArrow.visible) {
+    homeArrow.position.set(car.pos.x, car.pos.y + 7 + Math.sin(state.time * 4) * 0.4, car.pos.z);
+    homeArrow.rotation.y = toHome;
+    homeArrow.scale.setScalar(car.carrying ? 1.25 : 1);
+    const pulse = 0.5 + 0.5 * Math.sin(state.time * 5);
+    homeArrow.userData.gm.opacity = 0.2 + 0.3 * pulse;
+    homeArrow.userData.halo.material.opacity = 0.55 + 0.45 * pulse;
+    homeArrow.userData.am.color.setHSL(0.39, 1, 0.55 + 0.15 * pulse);
+  }
   hud.chase.classList.toggle('on', state.chased);
   if (noticeTimer > 0) { noticeTimer -= dt; if (noticeTimer <= 0) hud.notice.textContent = ''; }
 
